@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi and Vue Integration</title>
+    <link rel="stylesheet" href="https://lib.lsst.org/chi/5.0.0/chi.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app" class="chi">
+        <div class="chi-container">
+            <h1 class="chi-h1">{{ title }}</h1>
+            <div class="chi-form__item">
+                <label class="chi-label" for="input-example">Name</label>
+                <input 
+                    id="input-example" 
+                    class="chi-input" 
+                    type="text" 
+                    v-model="name"
+                    placeholder="Enter your name"
+                >
+            </div>
+            <button 
+                class="chi-button -primary" 
+                @click="greet"
+            >
+                Greet
+            </button>
+            <div v-if="message" class="chi-alert -success" role="alert">
+                <i class="chi-alert__icon chi-icon icon-circle-check" aria-hidden="true"></i>
+                <div class="chi-alert__content">
+                    <p class="chi-alert__text">{{ message }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    title: 'Chi Design System with Vue.js',
+                    name: '',
+                    message: ''
+                };
+            },
+            methods: {
+                greet() {
+                    if (this.name.trim()) {
+                        this.message = `Hello, ${this.name}!`;
+                    } else {
+                        this.message = 'Please enter your name.';
+                    }
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
