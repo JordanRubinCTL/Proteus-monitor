@@ -3,60 +3,260 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chi and Vue Integration</title>
+    <title>Proteus Monitor - Vue.js & Chi CSS</title>
     <link rel="stylesheet" href="https://lib.lsst.org/chi/5.0.0/chi.css">
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        .dashboard-card {
+            margin-bottom: 1rem;
+        }
+        .stat-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #0073e6;
+        }
+        .task-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e4e4e4;
+        }
+        .task-item:last-child {
+            border-bottom: none;
+        }
+    </style>
 </head>
 <body>
     <div id="app" class="chi">
-        <div class="chi-container">
-            <h1 class="chi-h1">{{ title }}</h1>
-            <div class="chi-form__item">
-                <label class="chi-label" for="input-example">Name</label>
-                <input 
-                    id="input-example" 
-                    class="chi-input" 
-                    type="text" 
-                    v-model="name"
-                    placeholder="Enter your name"
-                >
+        <!-- Navigation Header -->
+        <nav class="chi-main-nav">
+            <div class="chi-main-nav__start">
+                <div class="chi-main-nav__title">
+                    <a href="#" class="chi-main-nav__title-link">
+                        <span class="chi-main-nav__title-text">{{ appTitle }}</span>
+                    </a>
+                </div>
             </div>
-            <button 
-                class="chi-button -primary" 
-                @click="greet"
-            >
-                Greet
-            </button>
-            <div v-if="message" class="chi-alert -success" role="alert">
-                <i class="chi-alert__icon chi-icon icon-circle-check" aria-hidden="true"></i>
-                <div class="chi-alert__content">
-                    <p class="chi-alert__text">{{ message }}</p>
+            <div class="chi-main-nav__end">
+                <button class="chi-button -flat -icon" @click="refreshData">
+                    <div class="chi-button__content">
+                        <i class="chi-icon icon-refresh" aria-hidden="true"></i>
+                    </div>
+                </button>
+            </div>
+        </nav>
+
+        <div class="chi-container -fluid" style="margin-top: 2rem;">
+            <!-- Dashboard Header -->
+            <div class="chi-grid">
+                <div class="chi-col -w12">
+                    <h1 class="chi-h1">{{ pageTitle }}</h1>
+                    <p class="chi-text -text">Monitor your system status and manage tasks</p>
+                </div>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="chi-grid" style="margin-top: 2rem;">
+                <div class="chi-col -w3" v-for="stat in stats" :key="stat.label">
+                    <div class="chi-card dashboard-card">
+                        <div class="chi-card__content stat-card">
+                            <div class="metric-value">{{ stat.value }}</div>
+                            <div class="chi-text -text">{{ stat.label }}</div>
+                            <div class="chi-badge" :class="stat.status === 'good' ? '-success' : stat.status === 'warning' ? '-warning' : '-danger'">
+                                {{ stat.status }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Grid -->
+            <div class="chi-grid" style="margin-top: 2rem;">
+                <!-- Task Management -->
+                <div class="chi-col -w6">
+                    <div class="chi-card dashboard-card">
+                        <div class="chi-card__header">
+                            <div class="chi-card__title">Task Management</div>
+                        </div>
+                        <div class="chi-card__content">
+                            <!-- Add Task Form -->
+                            <div class="chi-form__item">
+                                <label class="chi-label" for="task-input">Add New Task</label>
+                                <div class="chi-input__wrapper">
+                                    <input 
+                                        id="task-input" 
+                                        class="chi-input" 
+                                        type="text" 
+                                        v-model="newTask"
+                                        @keyup.enter="addTask"
+                                        placeholder="Enter task description"
+                                    >
+                                    <button 
+                                        class="chi-button -primary -sm" 
+                                        @click="addTask"
+                                        :disabled="!newTask.trim()"
+                                    >
+                                        Add
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Task List -->
+                            <div v-if="tasks.length > 0" style="margin-top: 1rem;">
+                                <div v-for="(task, index) in tasks" :key="task.id" class="task-item">
+                                    <div>
+                                        <input 
+                                            type="checkbox" 
+                                            class="chi-checkbox__input" 
+                                            :id="'task-' + task.id"
+                                            v-model="task.completed"
+                                        >
+                                        <label class="chi-checkbox__label" :for="'task-' + task.id">
+                                            <span :class="{'chi-text -strikethrough': task.completed}">{{ task.text }}</span>
+                                        </label>
+                                    </div>
+                                    <button 
+                                        class="chi-button -flat -sm -icon" 
+                                        @click="removeTask(index)"
+                                    >
+                                        <i class="chi-icon icon-x" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div v-else class="chi-text -text" style="text-align: center; padding: 2rem;">
+                                No tasks yet. Add one above!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Status -->
+                <div class="chi-col -w6">
+                    <div class="chi-card dashboard-card">
+                        <div class="chi-card__header">
+                            <div class="chi-card__title">System Status</div>
+                        </div>
+                        <div class="chi-card__content">
+                            <!-- Status Toggle -->
+                            <div class="chi-form__item">
+                                <div class="chi-switch">
+                                    <input 
+                                        class="chi-switch__input" 
+                                        type="checkbox" 
+                                        id="system-status"
+                                        v-model="systemOnline"
+                                    >
+                                    <label class="chi-switch__label" for="system-status">
+                                        <span class="chi-switch__slider"></span>
+                                        <span class="chi-label">System {{ systemOnline ? 'Online' : 'Offline' }}</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Status Messages -->
+                            <div v-if="statusMessage" class="chi-alert" :class="alertClass" role="alert" style="margin-top: 1rem;">
+                                <i class="chi-alert__icon chi-icon" :class="alertIcon" aria-hidden="true"></i>
+                                <div class="chi-alert__content">
+                                    <p class="chi-alert__text">{{ statusMessage }}</p>
+                                </div>
+                            </div>
+
+                            <!-- Progress Example -->
+                            <div style="margin-top: 1.5rem;">
+                                <label class="chi-label">System Load</label>
+                                <div class="chi-progress" style="margin-top: 0.5rem;">
+                                    <div class="chi-progress__bar" :style="{width: systemLoad + '%'}"></div>
+                                </div>
+                                <div class="chi-text -text -xs" style="margin-top: 0.25rem;">{{ systemLoad }}%</div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div style="margin-top: 1.5rem;">
+                                <button class="chi-button -primary -sm" @click="simulateLoad" style="margin-right: 0.5rem;">
+                                    Simulate Load
+                                </button>
+                                <button class="chi-button -secondary -sm" @click="resetSystem">
+                                    Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Profile Section -->
+            <div class="chi-grid" style="margin-top: 2rem;">
+                <div class="chi-col -w12">
+                    <div class="chi-card dashboard-card">
+                        <div class="chi-card__header">
+                            <div class="chi-card__title">User Profile</div>
+                        </div>
+                        <div class="chi-card__content">
+                            <div class="chi-grid">
+                                <div class="chi-col -w6">
+                                    <div class="chi-form__item">
+                                        <label class="chi-label" for="user-name">Name</label>
+                                        <input 
+                                            id="user-name" 
+                                            class="chi-input" 
+                                            type="text" 
+                                            v-model="user.name"
+                                            placeholder="Enter your name"
+                                        >
+                                    </div>
+                                </div>
+                                <div class="chi-col -w6">
+                                    <div class="chi-form__item">
+                                        <label class="chi-label" for="user-email">Email</label>
+                                        <input 
+                                            id="user-email" 
+                                            class="chi-input" 
+                                            type="email" 
+                                            v-model="user.email"
+                                            placeholder="Enter your email"
+                                        >
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="chi-form__item">
+                                <label class="chi-label" for="user-role">Role</label>
+                                <select id="user-role" class="chi-input" v-model="user.role">
+                                    <option value="">Select a role</option>
+                                    <option value="administrator">Administrator</option>
+                                    <option value="operator">Operator</option>
+                                    <option value="viewer">Viewer</option>
+                                </select>
+                            </div>
+
+                            <button 
+                                class="chi-button -primary" 
+                                @click="saveProfile"
+                                :disabled="!user.name || !user.email"
+                            >
+                                Save Profile
+                            </button>
+
+                            <div v-if="profileMessage" class="chi-alert -success" role="alert" style="margin-top: 1rem;">
+                                <i class="chi-alert__icon chi-icon icon-circle-check" aria-hidden="true"></i>
+                                <div class="chi-alert__content">
+                                    <p class="chi-alert__text">{{ profileMessage }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <script>
-        const { createApp } = Vue;
-
-        createApp({
-            data() {
-                return {
-                    title: 'Chi Design System with Vue.js',
-                    name: '',
-                    message: ''
-                };
-            },
-            methods: {
-                greet() {
-                    if (this.name.trim()) {
-                        this.message = `Hello, ${this.name}!`;
-                    } else {
-                        this.message = 'Please enter your name.';
-                    }
-                }
-            }
-        }).mount('#app');
-    </script>
+    <!-- JavaScript -->
+    <script src="app.js"></script>
 </body>
 </html>
