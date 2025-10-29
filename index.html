@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en" class="chi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Proteus Chi Demo - Web Components Dashboard</title>
+    <meta name="description" content="A modern web components application built with Chi UI and Vue backend">
+    
+<link rel="stylesheet" href="https://lib.lumen.com/chi/6.67.0/chi-portal.css" integrity="sha256-iA3FwGgnKpn/w8P2BwmuIqfyPvbH/pubeTjtINO9gKI=" crossorigin="anonymous">
+
+
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+
+
+    
+    <style>
+        /* Global Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Loading Screen */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            color: white;
+            opacity: 1;
+            transition: opacity 0.5s ease-out;
+        }
+
+        #loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 2rem;
+        }
+
+        .loading-text {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .loading-subtitle {
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Navigation */
+        .main-nav {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #333;
+            text-decoration: none;
+        }
+
+        .nav-brand:hover {
+            color: #007acc;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-item {
+            position: relative;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: #666;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: #007acc;
+            background: rgba(0, 122, 204, 0.1);
+        }
+
+        /* Mobile menu toggle */
+        .nav-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #333;
+        }
+
+        /* Main Content */
+        .main-content {
+            min-height: calc(100vh - 80px);
+            position: relative;
+        }
+
+        .page-section {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .page-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Footer */
+        .main-footer {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .footer-content {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .footer-link {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .footer-link:hover {
+            color: white;
+        }
+
+        /* Welcome Section */
+        .welcome-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            margin: 2rem;
+            border-radius: 1rem;
+            padding: 3rem 2rem;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .welcome-title {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .welcome-subtitle {
+            font-size: 1.25rem;
+            color: #666;
+            margin-bottom: 2rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-description {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: rgba(255, 255, 255, 0.98);
+                backdrop-filter: blur(10px);
+                flex-direction: column;
+                padding: 1rem;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+                border-radius: 0 0 1rem 1rem;
+            }
+
+            .nav-menu.active {
+                display: flex;
+            }
+
+            .nav-toggle {
+                display: block;
+            }
+
+            .nav-container {
+                padding: 1rem;
+            }
+
+            .welcome-section {
+                margin: 1rem;
+                padding: 2rem 1rem;
+            }
+
+            .welcome-title {
+                font-size: 2rem;
+            }
+
+            .welcome-subtitle {
+                font-size: 1.1rem;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+        }
+
+        /* Utility Classes */
+        .text-center { text-align: center; }
+        .mb-0 { margin-bottom: 0; }
+        .mb-1 { margin-bottom: 1rem; }
+        .mb-2 { margin-bottom: 2rem; }
+        .hidden { display: none; }
+    </style>
+</head>
+
+
+<header class="chi-header -lg -impersonation">
+  <div class="chi-impersonation-bar">
+    <div class="chi-impersonation-bar__content"><span class="chi-impersonation-bar__label">Signed in as:</span><strong class="chi-impersonation-bar__username">User</strong>
+      <div class="chi-impersonation-bar__divider chi-divider -vertical -h--75"></div>
+      <button class="chi-button -flat -xs -icon" id="button-portal-logout" aria-label="Sign out" data-tooltip="Sign out" data-position="bottom">
+        <div class="chi-button__content"><i class="chi-icon icon-logout" aria-hidden="true"></i></div>
+      </button>
+    </div>
+  </div>
+  <nav class="chi-header__content">
+    <div class="chi-header__brand">
+      <a class="chi-brand" href="#" aria-label="Lumen">
+        <svg viewBox="0 0 145 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M0 1.4332C0 .61497895.65465263.00138947 1.55466316.00138947c.94108421 0 1.55466316.61358948 1.55466316 1.43181053v14.1059263c0 .4910737.2046421.7364421.7364421.7364421H17.0602316c1.0639368 0 1.6775158.4910737 1.6775158 1.4318105 0 .9821369-.613579 1.4321474-1.6775158 1.4321474H1.67751579C.57286316 19.1395263 0 18.6895263 0 17.7073789V1.4332zm26.4292842 10.5716737c0 5.2775789 2.8639579 4.639021 8.0597474 4.639021 5.1957895 0 8.0597473.7203579 8.0597473-4.6390105V1.43330526c0-.81822105.6135895-1.4321579 1.5546632-1.4321579.9407368 0 1.5546632.61392632 1.5546632 1.4321579V12.2913053c0 6.5868736-4.0914737 7.3390526-11.1690737 7.3390526-7.0779474 0-11.1690737-.752179-11.1690737-7.3390526V1.43329474c0-.81822106.6135895-1.43214737 1.5546632-1.43214737.9410736 0 1.5546631.61391579 1.5546631 1.43214737V12.0048737zm49.5442421-7.21691581h-.1228631l-7.5276106 7.13509471c-.7579894.6447263-1.1114947 1.1864421-1.8003684 1.1864421-.5482316 0-1.0783053-.5194736-1.7589684-1.1864421l-7.5690105-7.17615786h-.163579V17.9531579c0 .8589474-.6135895 1.4318105-1.5546631 1.4318105-.9000106 0-1.5546632-.5728631-1.5546632-1.4318105V2.12864211C53.9218.9422 55.0165368.00111579 55.9264737.00111579c.9102842 0 1.6823158.54822105 2.7003895 1.59572632l7.9368947 7.78974736h.0407263l7.9372316-7.83081052C75.5772526.60853685 76.0488105.00111579 77.1189053.00111579c1.1296421 0 1.9639473.94108421 1.9639473 2.12752632V17.9531474c0 .8589473-.6135789 1.431821-1.5546631 1.431821-.9000106 0-1.5546632-.5728737-1.5546632-1.431821V4.78795789zm11.4553369 3.53818948l13.3373048.0376421c1.104653 0 1.677516.5318 1.677516 1.43181053 0 .9410737-.572863 1.4321474-1.677516 1.4321474H90.5381789v4.3115158c0 .4907368.2046422.7364421.7364422.7364421h13.5419679c1.06359 0 1.636453.4907263 1.636453 1.4318105 0 .9818-.572863 1.4318105-1.636453 1.4318105H89.1063789c-1.1046526 0-1.6775157-.4500105-1.6775157-1.4318105V8.32614737zm48.6445048 9.21771583c0 1.0636-.816863 1.8411052-1.88181 1.8411052-1.055716 0-1.762726-.8117263-2.782179-1.6775158L116.190242 4.62438947V17.9531579c0 .8182316-.613926 1.4318105-1.554663 1.4318105-.900347 0-1.554663-.6135895-1.554663-1.4318105V2.12864211c0-1.39108421.731305-2.12752632 1.840747-2.12752632 1.011242 0 1.600526.66628421 2.659316 1.55466316l15.383053 12.91983155V1.43327368c0-.81822105.613589-1.4321579 1.554663-1.4321579.900021 0 1.554673.61392632 1.554673 1.4321579V17.5438632zm2.167569-14.93333688v-.01413685c0-1.34223158 1.088147-2.47245263 2.458484-2.47245263 1.384842 0 2.458484 1.11607369 2.458484 2.45830527v.01414736c0 1.34223158-1.087789 2.47262106-2.458484 2.47262106-1.384495 0-2.458484-1.11625264-2.458484-2.45848421zm4.6344-.01413685v-.01414736c0-1.20094737-.932537-2.18989474-2.175916-2.18989474-1.229232 0-2.175916 1.00309474-2.175916 2.2040421v.01413685c0 1.20094736.932537 2.19006315 2.175916 2.19006315 1.229242 0 2.175916-1.00325263 2.175916-2.2042zm-3.136748-1.2998h1.130569c.550968 0 .960821.26841053.960821.79126316 0 .40968421-.240463.6639579-.57959.7628l.664127.94668421h-.579253l-.59341-.86181052h-.522674v.86181052h-.48059V1.29658947zm1.088137 1.24338948c.325 0 .508537-.16956842.508537-.40986316 0-.26841053-.183537-.40968421-.508537-.40968421h-.607537v.81954737h.607537z" fill="#000"></path>
+          <path d="M106.330232 1.71966316c0-.94108421-.572874-1.47287369-1.677516-1.47287369H89.1060842c-1.1043263 0-1.6771789.53178948-1.6771789 1.47287369v1.42565263l17.2648737-.0345579c1.063579-.00001052 1.636453-.49107368 1.636453-1.39109473" fill="#0C9ED9"></path>
+        </svg>
+      </a>
+      <span class="chi-header__title -d--none -d-sm--flex">PROTEUS Standards demo</span>
+    </div>
+    <div class="chi-header__start">
+      <div class="-d--flex -d-lg--none">
+        <button class="chi-button -icon -flat chi-drawer__trigger" id="drawer-trigger-portal-pib2" data-target="#drawer-1" aria-label="Toggle navigation">
+          <div class="chi-button__content"><i class="chi-icon -sm--2 icon-menu" aria-hidden="true"></i></div>
+        </button>
+      </div>
+    </div>
+    <div class="chi-header__end">
+      <div class="-d--none -d-lg--flex">
+        <button class="chi-button -flat -icon" id="button-portal-notification2" aria-label="Notifications" data-tooltip="Notifications" data-position="bottom">
+          <div class="chi-button__content"><i class="chi-icon icon-bell-outline" aria-hidden="true"></i>
+            <div class="chi-badge -dark -xs">2</div>
+          </div>
+        </button>
+        <div class="chi-divider -vertical"></div>
+        <div class="chi-dropdown -d--none -d-lg--flex">
+          <button class="chi-button -flat chi-dropdown__trigger -px--1 -animate" id="button-portal-user-menu2" data-position="bottom-end">Menu</button>
+          <div class="chi-dropdown__menu -w--sm"><a class="chi-dropdown__menu-item" href="#"><i class="chi-icon icon-user" aria-hidden="true"></i><span>Item 1</span></a><a class="chi-dropdown__menu-item" href="#"><i class="chi-icon icon-logout" aria-hidden="true"></i><span>Item 2</span></a></div>
+        </div>
+        <div class="chi-dropdown -d--none -d-lg--flex">
+          <button class="chi-button -flat chi-dropdown__trigger -px--1 -animate" id="button-portal-eid-menu2" data-position="bottom-end">Menu</button>
+          <div class="chi-dropdown__menu -w--sm"><a class="chi-dropdown__menu-item" href="#"><i class="chi-icon icon-user" aria-hidden="true"></i><span>Item 1</span></a><a class="chi-dropdown__menu-item" href="#"><i class="chi-icon icon-logout" aria-hidden="true"></i><span>Item 2</span></a></div>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <nav class="chi-header__navbar">
+    <div class="chi-header__start"></div>
+    <div class="chi-header__end">
+      <ul class="chi-tabs -sm">
+        <li><a class="-text--uppercase" href="#" target="_blank">Help</a></li>
+        <li><a class="-text--uppercase" href="#" target="_blank">Contact Us</a></li>
+      </ul>
+    </div>
+  </nav>
+</header>
+
+<!-- Drawer -->
+<div class="chi-backdrop -closed">
+  <div class="chi-backdrop__wrapper">
+    <div class="chi-drawer -left -menu -position--absolute" id="drawer-1">
+      <div class="chi-drawer__header">
+        <button class="chi-button -icon -close" aria-label="Close">
+          <div class="chi-button__content">
+            <i class="chi-icon icon-x" aria-hidden="true"></i>
+          </div>
+        </button>
+      </div>
+      <div class="chi-drawer__content">
+        <div class="-px--2 -text">Drawer content here</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+  chi.drawer(document.getElementById('drawer-trigger-portal-pib2'));
+  chi.dropdown(document.getElementById('button-portal-site-menu2'));
+  chi.dropdown(document.getElementById('button-portal-user-menu2'));
+  chi.dropdown(document.getElementById('button-portal-eid-menu2'));
+  chi.tooltip(document.getElementById('button-portal-logout'));
+  chi.tooltip(document.getElementById('button-portal-notification2'));
+</script></header>
+
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">🚀 Proteus Standards Demo</div>
+        <div class="loading-subtitle">Loading Web Components...</div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <a href="#" class="nav-brand">
+                🚀 <span>Proteus Chi Monitor index,html</span>
+            </a>
+            
+            <ul class="nav-menu" id="nav-menu">
+                <li class="nav-item">
+                    <a href="#" class="nav-link active" data-page="welcome">🏠 Home</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-page="dashboard">📊 Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-page="buttons">🎯 Buttons</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-page="forms">📝 Forms</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-page="data">📋 Data Display</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-page="modals">🗂️ Modals</a>
+                </li>
+            </ul>
+            
+            <button class="nav-toggle" id="nav-toggle">☰</button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Welcome Section -->
+        <section id="welcome-page" class="page-section active">
+            <div class="welcome-section">
+                <h1 class="welcome-title">🚀 Proteus Chi Monitor</h1>
+                <p class="welcome-subtitle">
+                    A demo on proteus built with Chi Web Components and a Vue.js backend. 
+                    This is used for process and library examination.
+                </p>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <h3 class="feature-title">High Performance</h3>
+                        <p class="feature-description">
+                            This is a lightning bolt.  Lightning is cool.
+                        </p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🎨</div>
+                        <h3 class="feature-title">Bob Ross</h3>
+                        <p class="feature-description">
+                            He liked to paint happy trees.....
+                        </p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔧</div>
+                        <h3 class="feature-title">This is a wrench</h3>
+                        <p class="feature-description">
+                            Metric or imperial, who knows...
+                        </p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📊</div>
+                        <h3 class="feature-title">Data Visualization</h3>
+                        <p class="feature-description">
+                            Who doesnt like a graph
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dashboard Page -->
+        <section id="dashboard-page" class="page-section">
+            <chi-dashboard></chi-dashboard>
+        </section>
+
+        <!-- Buttons Page -->
+        <section id="buttons-page" class="page-section">
+            <chi-button-showcase></chi-button-showcase>
+        </section>
+
+        <!-- Forms Page -->
+        <section id="forms-page" class="page-section">
+            <chi-form-showcase></chi-form-showcase>
+        </section>
+
+        <!-- Data Display Page -->
+        <section id="data-page" class="page-section">
+            <chi-data-display></chi-data-display>
+        </section>
+
+        <!-- Modals Page -->
+        <section id="modals-page" class="page-section">
+            <chi-modal-system></chi-modal-system>
+        </section>
+    </main>
+
+    <!-- Footer -->
+<footer class="chi-footer">
+  <div class="chi-footer__content">
+    <div class="chi-footer__internal">
+      <div class="chi-footer__internal-content -mw--1200">
+        <div class="chi-footer__links">
+          <ul>
+            <li>
+              <a href="https://www.lumen.com/en-us/about.html">About Us</a>
+            </li>
+            <li>
+              <a href="https://www.lumen.com/en-us/about/accessibility.html">Accessibility</a>
+            </li>
+            <li>
+              <a href="https://www.lumen.com/en-us/about/legal/commission-for-complaints-for-telecom-television-services-ccts.html">Canadian Ombudsman</a>
+            </li>
+            <li>
+              <a href="https://jobs.lumen.com" target="_blank">Careers</a>
+            </li>
+            <li>
+              <a href="https://www.lumen.com/en-us/contact-us.html">Contact Us</a>
+            </li>
+            <li>
+              <a href="#" class="optanon-toggle-display">Cookie Settings</a>
+            </li>
+            <li>
+              <a href="https://www.lumen.com/en-us/about/governance.html">Governance</a>
+            </li>
+            <li>
+              <a href="https://www.lumen.com/en-us/about/legal.html">Legal</a>
+            </li>
+            <li>
+              <a href="https://www.lumen.com/en-us/about/legal/privacy-center.html">Privacy</a>
+            </li>
+            <li>
+              <a href="https://www.lumen.com/en-us/about/public-policy.html">Public Policy</a>
+            </li>
+            <li>
+              <a href="https://www.lumen.com/help/en-us/home.html" target="_blank">Support</a>
+            </li>
+          </ul>
+          <div class="chi-footer__copyright">&copy; 2025 Lumen Technologies. All Rights Reserved. Lumen is a registered trademark in the United States, EU and certain other countries.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+    <!-- Component Scripts -->
+    <script src="components/chi-base.js"></script>
+    <script src="components/chi-button-showcase.js"></script>
+    <script src="components/chi-form-components.js"></script>
+    <script src="components/chi-dashboard.js"></script>
+    <script src="components/chi-data-display.js"></script>
+    <script src="components/chi-modal-system.js"></script>
+
+    <!-- Application Script -->
+    <script>
+        // Application Class
+        class ProteusApp {
+            constructor() {
+                this.currentPage = 'welcome';
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.hideLoadingScreen();
+                this.checkBackendConnection();
+            }
+
+            bindEvents() {
+                // Navigation
+                const navLinks = document.querySelectorAll('.nav-link');
+                navLinks.forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const page = link.dataset.page;
+                        this.navigateTo(page);
+                    });
+                });
+
+                // Mobile menu toggle
+                const navToggle = document.getElementById('nav-toggle');
+                const navMenu = document.getElementById('nav-menu');
+                
+                navToggle?.addEventListener('click', () => {
+                    navMenu.classList.toggle('active');
+                });
+
+                // Close mobile menu when clicking links
+                navLinks.forEach(link => {
+                    link.addEventListener('click', () => {
+                        navMenu.classList.remove('active');
+                    });
+                });
+
+                // Global error handling
+                window.addEventListener('error', (e) => {
+                    console.error('Application error:', e.error);
+                    this.showNotification('danger', 'An unexpected error occurred', 'Error');
+                });
+
+                // Listen for custom events from components
+                document.addEventListener('api-success', (e) => {
+                    console.log('API Success:', e.detail);
+                });
+
+                document.addEventListener('api-error', (e) => {
+                    console.error('API Error:', e.detail);
+                    this.showNotification('warning', 'API request failed. Please check your connection.', 'Connection Issue');
+                });
+            }
+
+            navigateTo(page) {
+                // Update active nav link
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.remove('active');
+                });
+                document.querySelector(`[data-page="${page}"]`).classList.add('active');
+
+                // Show corresponding page
+                document.querySelectorAll('.page-section').forEach(section => {
+                    section.classList.remove('active');
+                });
+                document.getElementById(`${page}-page`).classList.add('active');
+
+                this.currentPage = page;
+
+                // Update page title
+                const titles = {
+                    'welcome': '🚀 Proteus Chi Monitor - Home',
+                    'dashboard': '📊 Dashboard - Proteus Chi Monitor',
+                    'buttons': '🎯 Buttons - Proteus Chi Monitor',
+                    'forms': '📝 Forms - Proteus Chi Monitor',
+                    'data': '📋 Data Display - Proteus Chi Monitor',
+                    'modals': '🗂️ Modals - Proteus Chi Monitor'
+                };
+                document.title = titles[page] || '🚀 Proteus Chi Monitor';
+            }
+
+            hideLoadingScreen() {
+                const loadingScreen = document.getElementById('loading-screen');
+                
+                // Simulate loading time
+                setTimeout(() => {
+                    loadingScreen.classList.add('hidden');
+                    
+                    // Remove from DOM after animation
+                    setTimeout(() => {
+                        if (loadingScreen.parentNode) {
+                            loadingScreen.parentNode.removeChild(loadingScreen);
+                        }
+                    }, 500);
+                }, 1500);
+            }
+
+            async checkBackendConnection() {
+                try {
+                    const response = await fetch('/api/dashboard/stats');
+                    if (response.ok) {
+                        this.showNotification('success', 'Backend connection established', 'System Ready');
+                    } else {
+                        throw new Error('Backend not responding');
+                    }
+                } catch (error) {
+                    console.warn('Backend connection failed:', error);
+                    this.showNotification('warning', 'Backend server not available. Some features may be limited.', 'Connection Warning');
+                }
+            }
+
+            showNotification(type, message, title = '') {
+                const notification = document.createElement('chi-notification');
+                notification.setAttribute('type', type);
+                notification.setAttribute('title', title);
+                notification.setAttribute('autoshow', 'true');
+                notification.setAttribute('duration', '5000');
+                notification.textContent = message;
+                
+                document.body.appendChild(notification);
+                
+                // Remove from DOM after hide
+                notification.addEventListener('chi-notification-hide', () => {
+                    notification.remove();
+                });
+            }
+
+            // Utility methods
+            getCurrentPage() {
+                return this.currentPage;
+            }
+
+            isBackendAvailable() {
+                return fetch('/api/dashboard/stats')
+                    .then(response => response.ok)
+                    .catch(() => false);
+            }
+        }
+
+        // Service Worker Registration (for PWA capabilities)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                // Optional: Register service worker for offline functionality
+                console.log('Service Worker support detected');
+            });
+        }
+
+        // Initialize Application
+        let app;
+        document.addEventListener('DOMContentLoaded', () => {
+            app = new ProteusApp();
+            
+            // Make app globally available for debugging
+            window.ProteusApp = app;
+            
+            console.log('🚀 Proteus Chi Monitor initialized successfully!');
+        });
+
+        // Export for modules
+        if (typeof module !== 'undefined' && module.exports) {
+            module.exports = ProteusApp;
+        }
+    </script>
+</body>
+</html>

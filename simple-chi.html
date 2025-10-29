@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Chi Components Demo from simple-chi.html</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 2rem;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section {
+            background: white;
+            margin: 2rem 0;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Simple Chi Components Demo simple-chi.html</h1>
+        
+        <div class="section">
+            <h2>📊 Dashboard</h2>
+            <chi-dashboard></chi-dashboard>
+        </div>
+
+        <div class="section">
+            <h2>🎯 Button Components</h2>
+            <chi-button-showcase></chi-button-showcase>
+        </div>
+
+        <div class="demo-grid">
+            <div class="section">
+                <h2>📝 Form Components</h2>
+                <chi-form-showcase></chi-form-showcase>
+            </div>
+
+            <div class="section">
+                <h2>📋 Data Display</h2>
+                <chi-data-display></chi-data-display>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🗂️ Modal System</h2>
+            <chi-modal-system></chi-modal-system>
+        </div>
+    </div>
+
+    <!-- Load Chi Components -->
+    <script src="components/chi-base.js"></script>
+    <script src="components/chi-button-showcase.js"></script>
+    <script src="components/chi-form-components.js"></script>
+    <script src="components/chi-dashboard.js"></script>
+    <script src="components/chi-data-display.js"></script>
+    <script src="components/chi-modal-system.js"></script>
+    
+
+    <script>
+        // Simple initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('✅ Simple Chi Components loaded successfully!');
+            
+            // Check if backend is available
+            fetch('/api/dashboard/stats')
+                .then(response => {
+                    if (response.ok) {
+                        console.log('✅ Backend connection established');
+                    } else {
+                        console.warn('⚠️  Backend not available - using mock data');
+                    }
+                })
+                .catch(() => {
+                    console.warn('⚠️  Backend not available - using mock data');
+                });
+        });
+    </script>
+</body>
+</html>
