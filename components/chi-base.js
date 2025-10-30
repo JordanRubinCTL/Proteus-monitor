@@ -71,10 +71,14 @@ class ChiComponent extends HTMLElement {
     // Override in child classes if needed
   }
 
-  // Utility method for API calls
+  // Utility method for API calls (supports both internal and external APIs)
   async apiCall(endpoint, options = {}) {
     try {
-      const response = await fetch(`/api${endpoint}`, {
+      // Determine if this is an external URL or internal endpoint
+      const isExternal = endpoint.startsWith('http://') || endpoint.startsWith('https://');
+      const url = isExternal ? endpoint : `/api${endpoint}`;
+      
+      const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
           ...options.headers

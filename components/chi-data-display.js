@@ -25,8 +25,21 @@ class ChiTable extends ChiComponent {
   async loadData() {
     try {
       const { endpoint = '/users' } = this.props;
-      const data = await this.apiCall(endpoint);
-      this.setState({ data: Array.isArray(data) ? data : [], loading: false });
+      const response = await this.apiCall(endpoint);
+      
+      // Handle different response structures from external APIs
+      let data = [];
+      if (Array.isArray(response)) {
+        data = response;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        data = response.data; // ReqRes API structure
+      } else if (response && response.results && Array.isArray(response.results)) {
+        data = response.results; // Some APIs use 'results'
+      } else if (response && typeof response === 'object') {
+        data = [response]; // Single object response
+      }
+      
+      this.setState({ data, loading: false });
     } catch (error) {
       console.error('Failed to load table data:', error);
       this.setState({ data: [], loading: false });
@@ -249,6 +262,13 @@ class ChiTable extends ChiComponent {
         return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
       case 'status':
         return `<span class="status-badge status-${value.toLowerCase()}">${value}</span>`;
+      case 'boolean':
+        return `<span class="status-badge ${value ? 'status-completed' : 'status-pending'}">${value ? '✅ Complete' : '⏳ Pending'}</span>`;
+      case 'company':
+        return typeof value === 'object' ? value.name || '-' : value;
+      case 'truncated':
+        const text = String(value);
+        return text.length > 50 ? `<span title="${text}">${text.substring(0, 50)}...</span>` : text;
       default:
         return String(value);
     }
@@ -399,6 +419,16 @@ class ChiTable extends ChiComponent {
           color: white;
         }
 
+        .status-completed {
+          background-color: ${ChiTheme.colors.success};
+          color: white;
+        }
+
+        .status-pending {
+          background-color: ${ChiTheme.colors.warning};
+          color: white;
+        }
+
         .table-pagination {
           display: flex;
           justify-content: space-between;
@@ -496,16 +526,51 @@ class ChiDataDisplay extends ChiComponent {
   template() {
     return `
       <div class="data-display-container">
-        <h2>📊 Data Display Components</h2>
+        <h2>📊 External API Data Display</h2>
+        <p class="api-info">📡 Data sourced from external APIs (JSONPlaceholder, ReqRes, etc.)</p>
         
         <div class="tables-section">
           <chi-table 
-            title="👥 Users Management" 
-            endpoint="/users"
+            title="👥 External Users (JSONPlaceholder)" 
+            endpoint="https://jsonplaceholder.typicode.com/users"
             columns='[
               {"key": "name", "label": "Full Name", "type": "text"},
               {"key": "email", "label": "Email Address", "type": "text"},
-              {"key": "status", "label": "Status", "type": "status"}
+              {"key": "phone", "label": "Phone", "type": "text"},
+              {"key": "company", "label": "Company", "type": "company"}
+            ]'>
+          </chi-table>
+
+          <chi-table 
+            title="📝 Blog Posts (JSONPlaceholder)" 
+            endpoint="https://jsonplaceholder.typicode.com/posts"
+            columns='[
+              {"key": "id", "label": "ID", "type": "text"},
+              {"key": "title", "label": "Post Title", "type": "text"},
+              {"key": "userId", "label": "Author ID", "type": "text"},
+              {"key": "body", "label": "Content", "type": "truncated"}
+            ]'>
+          </chi-table>
+
+          <chi-table 
+            title="✅ Todo Items (JSONPlaceholder)" 
+            endpoint="https://jsonplaceholder.typicode.com/todos"
+            columns='[
+              {"key": "id", "label": "ID", "type": "text"},
+              {"key": "title", "label": "Task", "type": "text"},
+              {"key": "userId", "label": "User ID", "type": "text"},
+              {"key": "completed", "label": "Status", "type": "boolean"}
+            ]'>
+          </chi-table>
+
+          <chi-table 
+            title="👤 ReqRes Users (External API)" 
+            endpoint="https://reqres.in/api/users"
+            columns='[
+              {"key": "id", "label": "ID", "type": "text"},
+              {"key": "first_name", "label": "First Name", "type": "text"},
+              {"key": "last_name", "label": "Last Name", "type": "text"},
+              {"key": "email", "label": "Email", "type": "text"}
             ]'>
           </chi-table>
         </div>
@@ -538,7 +603,18 @@ class ChiDataDisplay extends ChiComponent {
         h2 {
           text-align: center;
           color: ${ChiTheme.colors.dark};
+          margin-bottom: ${ChiTheme.spacing.md};
+        }
+
+        .api-info {
+          text-align: center;
+          color: ${ChiTheme.colors.muted};
+          background: white;
+          padding: ${ChiTheme.spacing.md};
+          border-radius: 0.5rem;
           margin-bottom: ${ChiTheme.spacing.xl};
+          box-shadow: ${ChiTheme.shadows.sm};
+          border-left: 4px solid ${ChiTheme.colors.primary};
         }
 
         .tables-section {
