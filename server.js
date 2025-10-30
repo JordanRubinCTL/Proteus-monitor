@@ -10,6 +10,8 @@ const port = process.env.PORT || 3000;
 
 
 
+
+
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
@@ -68,6 +70,8 @@ app.get('/api/notifications', (req, res) => {
     { id: 3, message: 'Server maintenance in 2 hours', type: 'warning', timestamp: new Date().toISOString() }
   ]);
 });
+
+
 
 // Serve the main HTML file
 app.get('/', (req, res) => {
