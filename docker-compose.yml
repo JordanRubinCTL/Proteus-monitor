@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  proteus-monitor:
+    build: .
+    container_name: proteus-chi-monitor
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/api/dashboard/stats"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      # Optional: Mount logs for monitoring
+      - ./logs:/var/log/supervisor
+    networks:
+      - proteus-network
+
+  # Optional: Add a monitoring service
+  watchtower:
+    image: containrrr/watchtower
+    container_name: proteus-watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_POLL_INTERVAL=300
+      - WATCHTOWER_CLEANUP=true
+    restart: unless-stopped
+    networks:
+      - proteus-network
+
+networks:
+  proteus-network:
+    driver: bridge
+
+volumes:
+  proteus-logs:
+    driver: local

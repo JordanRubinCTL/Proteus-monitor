@@ -30,6 +30,13 @@ A modern web components application with a Vue.js backend, built with Chi UI com
 
 ## 🛠️ Getting Started
 
+### Architecture
+
+The application uses a **nginx + Node.js** architecture:
+- **Nginx**: Reverse proxy, static file serving, rate limiting, security headers
+- **Node.js/Express**: API server and application logic
+- **Supervisor**: Process management for both services
+
 ### Prerequisites
 
 - Node.js (v14 or higher)
@@ -37,6 +44,7 @@ A modern web components application with a Vue.js backend, built with Chi UI com
 
 ### Installation
 
+#### Local Development
 1. **Install dependencies:**
    ```bash
    npm install
@@ -50,6 +58,22 @@ A modern web components application with a Vue.js backend, built with Chi UI com
 3. **Open your browser:**
    - Main application: http://localhost:3000
    - Simple demo: http://localhost:3000/simple-chi.html
+
+#### Docker Deployment
+1. **Build and run with Docker:**
+   ```bash
+   docker build -t proteus-chi-monitor .
+   docker run -d --name proteus-monitor -p 80:80 proteus-chi-monitor
+   ```
+
+2. **Or use Docker Compose:**
+   ```bash
+   docker-compose up -d
+   ```
+
+3. **Access the application:**
+   - Main application: http://localhost
+   - Simple demo: http://localhost/simple-chi.html
 
 ### Production
 
