@@ -19,6 +19,56 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
 
+        <!-- MSAL.js for Azure AD login -->
+        <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
+        <style>
+            #msal-login-container {
+                background: rgba(255, 255, 255, 0.95);
+                border-radius: 8px;
+                padding: 1rem;
+                margin: 1rem auto;
+                max-width: 400px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            }
+            #msal-user-info { 
+                text-align: center; 
+                margin-top: 0.5rem; 
+                color: #222; 
+                padding: 1rem;
+                background: #f8f9fa;
+                border-radius: 6px;
+                border-left: 4px solid #0078d4;
+            }
+            #msal-logout-btn {
+                background: #fff;
+                color: #0078d4;
+                border: 1px solid #0078d4;
+                border-radius: 4px;
+                padding: 0.5rem 1.5rem;
+                font-size: 0.9rem;
+                font-weight: 600;
+                cursor: pointer;
+                margin-top: 0.75rem;
+                transition: all 0.2s ease;
+            }
+            #msal-logout-btn:hover { 
+                background: #0078d4;
+                color: white;
+            }
+            #msal-loading {
+                font-weight: 500;
+                padding: 1rem;
+                background: #e3f2fd;
+                border-radius: 6px;
+                border-left: 4px solid #2196f3;
+            }
+            .tenant-info {
+                font-size: 0.85rem;
+                color: #666;
+                margin-top: 0.5rem;
+            }
+        </style>
+
 
     
     <style>
@@ -460,11 +510,36 @@
         <!-- Welcome Section -->
         <section id="welcome-page" class="page-section active">
             <div class="welcome-section">
+                    <!-- Multi-Tenant Azure AD Login UI -->
+                    <div id="msal-login-container">
+                      <div id="msal-user-info" style="display:none;"></div>
+                      <div style="text-align: center;">
+                        <button id="msal-logout-btn" style="display:none;">🚪 Sign Out</button>
+                      </div>
+                      <div id="msal-loading" style="display:none;">
+                        <div style="color: #0078d4; font-size: 1rem; text-align: center;">
+                          🔄 Authenticating with Microsoft...<br>
+                          <small style="color: #666; margin-top: 0.5rem; display: block;">
+                            Multi-tenant authentication in progress
+                          </small>
+                        </div>
+                      </div>
+                    </div>
                 <h1 class="welcome-title">🚀 Proteus Chi Monitor</h1>
                 <p class="welcome-subtitle">
                     A demo on proteus built with Chi Web Components and a Vue.js backend. 
                     This is used for process and library examination.
                 </p>
+                
+                <!-- Authentication Configuration Display -->
+                <div id="auth-config-display" style="text-align: center; margin: 1.5rem auto; max-width: 500px; background: #f8f9fa; padding: 1rem; border-radius: 8px; border-left: 4px solid #007acc;">
+                    <div style="font-weight: 600; color: #007acc; margin-bottom: 0.5rem;">
+                        🔐 Authentication Configuration
+                    </div>
+                    <div style="font-size: 0.9rem; color: #666;">
+                        Loading configuration...
+                    </div>
+                </div>
                 
                 <div class="feature-grid">
                     <div class="feature-card">
@@ -756,4 +831,467 @@
         }
     </script>
 </body>
+        <script>
+            // ========================================
+            // AZURE AD TENANT CONFIGURATION
+            // ========================================
+            
+            // Configuration options - IMPORTANT: Must match your Azure AD App Registration!
+            const TENANT_CONFIG = {
+                // ⚠️  CRITICAL: The mode here MUST match your Azure Portal app registration settings!
+                
+                // If you get "/common endpoint not supported" error, your app is registered as single-tenant
+                // SOLUTION: Either change to single-tenant mode OR update Azure Portal to multi-tenant
+                
+                // Option 1: Single-tenant (RECOMMENDED if you get the /common error)
+                mode: 'single-tenant',
+                tenantId: '72b17115-9915-42c0-9f1b-4f98e5a4bcd2', // Replace with YOUR tenant ID from Azure Portal
+                
+                // Option 2: Multi-tenant (only if Azure Portal is configured as multi-tenant)
+                // mode: 'multi-tenant',
+                
+                // Option 3: Organizations only (only if Azure Portal allows work accounts)
+                // mode: 'organizations-only',
+                
+                clientId: "dd9e12c5-f62c-4303-bab8-824ac13e1f09", // Replace with your real clientId from Azure Portal
+                
+                // Optional: Your organization domain for better UX
+                tenantDomain: 'localhost:5500' // Replace with your actual domain
+            };
+
+            // Configuration validation
+            function validateTenantConfig() {
+                const errors = [];
+                const warnings = [];
+
+                if (TENANT_CONFIG.mode === 'single-tenant') {
+                    if (!TENANT_CONFIG.tenantId) {
+                        errors.push('single-tenant mode requires a valid tenantId');
+                    }
+                }
+
+                if (!TENANT_CONFIG.clientId) {
+                    warnings.push('Please replace the placeholder clientId with your real Azure AD Application ID');
+                }
+
+                return { errors, warnings };
+            }
+
+            // Dynamic authority configuration based on mode
+            function getAuthority() {
+                switch (TENANT_CONFIG.mode) {
+                    case 'single-tenant':
+                        if (!TENANT_CONFIG.tenantId) {
+                         
+                            throw new Error('tenantId is required for single-tenant mode');
+                        }
+                        return `https://login.microsoftonline.com/${TENANT_CONFIG.tenantId}`;
+                    
+                    case 'organizations-only':
+                        return 'https://login.microsoftonline.com/organizations';
+                    
+                    case 'multi-tenant':
+                    default:
+                        return 'https://login.microsoftonline.com/common';
+                }
+            }
+
+            // Dynamic scopes based on configuration
+            function getScopes() {
+                const baseScopes = ['User.Read'];
+                
+                if (TENANT_CONFIG.mode === 'single-tenant') {
+                    // Single tenant can request more permissions by default
+                    return [
+                        ...baseScopes,
+                        'User.ReadBasic.All',
+                        'Directory.Read.All',
+                        'Group.Read.All'
+                    ];
+                } else if (TENANT_CONFIG.mode === 'organizations-only') {
+                    // Organizations only - moderate permissions
+                    return [
+                        ...baseScopes,
+                        'User.ReadBasic.All'
+                    ];
+                } else {
+                    // Multi-tenant - minimal permissions to avoid consent issues
+                    return baseScopes;
+                }
+            }
+
+            // MSAL Configuration with dynamic authority
+            const msalConfig = {
+                auth: {
+                    clientId: TENANT_CONFIG.clientId,
+                    authority: getAuthority(),
+//                    redirectUri: window.location.origin,
+                    redirectUri: 'http://localhost:5500',
+                    postLogoutRedirectUri: window.location.origin,
+                    navigateToLoginRequestUrl: false,
+                    // Tenant-specific configurations
+                    ...(TENANT_CONFIG.mode === 'single-tenant' && {
+                        knownAuthorities: [`${TENANT_CONFIG.tenantId}.b2clogin.com`],
+                        cloudDiscoveryMetadata: "",
+                        authorityMetadata: ""
+                    })
+                },
+                cache: {
+                    cacheLocation: "sessionStorage",
+                    storeAuthStateInCookie: false,
+                },
+                system: {
+                    loggerOptions: {
+                        loggerCallback: (level, message, containsPii) => {
+                            if (containsPii) return;
+                            console.log(`MSAL [${TENANT_CONFIG.mode.toUpperCase()}]: ${message}`);
+                        },
+                        piiLoggingEnabled: false,
+                        logLevel: msal.LogLevel.Info,
+                    },
+                    windowHashTimeout: 60000,
+                    iframeHashTimeout: 6000,
+                    loadFrameTimeout: 0
+                }
+            };
+
+            // Validate configuration before proceeding
+            const validation = validateTenantConfig();
+            if (validation.errors.length > 0) {
+                console.error('❌ Configuration errors:', validation.errors);
+                throw new Error(`Configuration errors: ${validation.errors.join(', ')}`);
+            }
+            if (validation.warnings.length > 0) {
+                console.warn('⚠️ Configuration warnings:', validation.warnings);
+            }
+
+            console.log(`🔐 Azure AD Configuration: ${TENANT_CONFIG.mode.toUpperCase()} mode`);
+            console.log(`🎯 Authority: ${getAuthority()}`);
+            
+            const msalInstance = new msal.PublicClientApplication(msalConfig);
+
+            // Initialize UI elements and update loading message
+            const logoutBtn = document.getElementById("msal-logout-btn");
+            const userInfo = document.getElementById("msal-user-info");
+            const loadingDiv = document.getElementById("msal-loading");
+            
+            // Update UI elements based on configuration mode
+            updateLoadingMessage();
+            updateAuthConfigDisplay();
+
+            // Dynamic login request based on tenant configuration
+            const loginRequest = {
+                scopes: getScopes(),
+                prompt: TENANT_CONFIG.mode === 'multi-tenant' ? 'select_account' : 'login',
+                ...(TENANT_CONFIG.mode === 'single-tenant' && TENANT_CONFIG.tenantDomain && {
+                    loginHint: `@${TENANT_CONFIG.tenantDomain}`
+                })
+            };
+
+            console.log(`📋 Requested scopes: ${loginRequest.scopes.join(', ')}`);
+            console.log(`🎯 Login prompt: ${loginRequest.prompt}`);
+
+            function showUser(account) {
+                // Enhanced tenant-aware user display
+                const tenantId = account.tenantId;
+                const tenantName = getTenantDisplayName(account);
+                console.log(tenantId);
+                const userDisplayName = account.name || account.username || 'Unknown User';
+                const authMode = TENANT_CONFIG.mode.replace('-', ' ').toUpperCase();
+                const modeIcon = {
+                    'single-tenant': '🏢',
+                    'multi-tenant': '🌐', 
+                    'organizations-only': '🏛️'
+                }[TENANT_CONFIG.mode] || '🔐';
+                
+                userInfo.innerHTML = `
+                    <div style="font-weight: 600; color: #0078d4; margin-bottom: 0.5rem;">
+                        👤 ${userDisplayName}
+                    </div>
+                    <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.25rem;">
+                        🏢 ${tenantName}
+                    </div>
+                    <div style="font-size: 0.75rem; color: #999; margin-bottom: 0.25rem;">
+                        Tenant: ${tenantId.substring(0, 8)}...
+                    </div>
+                    <div style="font-size: 0.7rem; color: #007acc; background: #f0f8ff; padding: 0.25rem 0.5rem; border-radius: 12px; display: inline-block;">
+                        ${modeIcon} ${authMode} MODE
+                    </div>
+                `;
+                userInfo.style.display = "inline-block";
+                logoutBtn.style.display = "inline-block";
+                loadingDiv.style.display = "none";
+                
+                // Store enhanced tenant info globally for use by other components
+                window.currentTenant = {
+                    tenantId: tenantId,
+                    tenantName: tenantName,
+                    user: account,
+                    authMode: TENANT_CONFIG.mode,
+                    authority: getAuthority(),
+                    scopes: loginRequest.scopes
+                };
+                
+                console.log('Multi-tenant login successful:', {
+                    user: userDisplayName,
+                    tenant: tenantName,
+                    tenantId: tenantId
+                });
+            }
+
+            function getTenantDisplayName(account) {
+                const tenantId = account.tenantId;
+                const username = account.username || '';
+                const authMode = TENANT_CONFIG.mode;
+                
+                // Handle single-tenant mode
+                if (authMode === 'single-tenant') {
+                    if (TENANT_CONFIG.tenantDomain) {
+                        return `${TENANT_CONFIG.tenantDomain} (Single Tenant)`;
+                    }
+                    return `Single Tenant (${tenantId.substring(0, 8)}...)`;
+                }
+                
+                // Handle known Microsoft tenant IDs
+                const knownTenants = {
+                    '9188040d-6c67-4c5b-b112-36a304b66dad': 'Personal Microsoft Account',
+                    'f8cdef31-a31e-4b4a-93e4-5f571e91255a': 'Microsoft Corporation',
+                    '72f988bf-86f1-41af-91ab-2d7cd011db47': 'Microsoft Corporation'
+                };
+                
+                if (knownTenants[tenantId]) {
+                    return knownTenants[tenantId];
+                }
+                
+                // Personal account detection
+                const personalDomains = ['@outlook.com', '@hotmail.com', '@live.com', '@msn.com'];
+                if (personalDomains.some(domain => username.includes(domain))) {
+                    return authMode === 'organizations-only' ? 'Invalid Account Type' : 'Personal Microsoft Account';
+                }
+                
+                // Business account detection
+                if (username.includes('@')) {
+                    const domain = username.split('@')[1] || 'Unknown Domain';
+                    const orgName = domain.split('.')[0];
+                    const capitalizedOrg = orgName.charAt(0).toUpperCase() + orgName.slice(1);
+                    
+                    if (authMode === 'organizations-only') {
+                        return `${capitalizedOrg} Organization (Work Account)`;
+                    } else {
+                        return `${capitalizedOrg} Organization`;
+                    }
+                }
+                
+                // Fallback
+                return authMode === 'single-tenant' ? 'Authorized Tenant' : 'External Organization';
+            }
+            
+            function updateLoadingMessage() {
+                const modeMessages = {
+                    'single-tenant': 'Single-tenant authentication in progress',
+                    'multi-tenant': 'Multi-tenant authentication in progress', 
+                    'organizations-only': 'Organization-only authentication in progress'
+                };
+                
+                const modeIcons = {
+                    'single-tenant': '🏢',
+                    'multi-tenant': '🌐',
+                    'organizations-only': '🏛️'
+                };
+                
+                const loadingContent = `
+                    <div style="color: #0078d4; font-size: 1rem; text-align: center;">
+                        🔄 Authenticating with Microsoft...<br>
+                        <small style="color: #666; margin-top: 0.5rem; display: block;">
+                            ${modeIcons[TENANT_CONFIG.mode]} ${modeMessages[TENANT_CONFIG.mode]}
+                        </small>
+                    </div>
+                `;
+                
+                loadingDiv.innerHTML = loadingContent;
+            }
+
+            function updateAuthConfigDisplay() {
+                const authConfigDiv = document.getElementById('auth-config-display');
+                if (!authConfigDiv) return;
+                
+                const modeDescriptions = {
+                    'single-tenant': 'Restricted to specific tenant only',
+                    'multi-tenant': 'Accepts users from any Azure AD tenant + personal accounts',
+                    'organizations-only': 'Work/school accounts only (no personal accounts)'
+                };
+                
+                const modeIcons = {
+                    'single-tenant': '🏢',
+                    'multi-tenant': '🌐',
+                    'organizations-only': '🏛️'
+                };
+                
+                const authMode = TENANT_CONFIG.mode.replace('-', ' ').toUpperCase();
+                const authority = getAuthority();
+                const scopes = getScopes();
+                
+                const warningMessage = TENANT_CONFIG.mode === 'multi-tenant' ? 
+                    `<div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 0.75rem; border-radius: 4px; margin-top: 0.5rem; font-size: 0.8rem; color: #856404;">
+                        ⚠️ If you get "/common endpoint not supported" error, your Azure app is registered as single-tenant.<br>
+                        <strong>Solution:</strong> Change mode to 'single-tenant' or update Azure Portal to multi-tenant.
+                    </div>` : '';
+
+                authConfigDiv.innerHTML = `
+                    <div style="font-weight: 600; color: #007acc; margin-bottom: 0.75rem;">
+                        🔐 Authentication Configuration
+                    </div>
+                    <div style="background: white; padding: 1rem; border-radius: 6px; margin-bottom: 0.5rem;">
+                        <div style="font-weight: 600; color: #333; margin-bottom: 0.5rem;">
+                            ${modeIcons[TENANT_CONFIG.mode]} ${authMode} MODE
+                        </div>
+                        <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.5rem;">
+                            ${modeDescriptions[TENANT_CONFIG.mode]}
+                        </div>
+                        <div style="font-size: 0.75rem; color: #999;">
+                            Authority: ${authority.replace('https://login.microsoftonline.com/', '')}<br>
+                            Scopes: ${scopes.join(', ')}
+                        </div>
+                        ${warningMessage}
+                    </div>
+                `;
+            }
+
+            function showLoading() {
+                userInfo.style.display = "none";
+                logoutBtn.style.display = "none";
+                loadingDiv.style.display = "block";
+            }
+
+            function initiateLogin() {
+                showLoading();
+                msalInstance.loginRedirect(loginRequest);
+            }
+
+            // Multi-tenant account selection helper
+            function selectBestAccount(accounts) {
+                if (accounts.length === 0) return null;
+                if (accounts.length === 1) return accounts[0];
+                
+                // Prefer accounts from the same tenant if multiple exist
+                const currentDomain = window.location.hostname;
+                return accounts.find(acc => acc.username.includes(currentDomain)) || accounts[0];
+            }
+
+            // Enhanced multi-tenant authentication handling
+            msalInstance.handleRedirectPromise().then((response) => {
+                let account = null;
+                
+                if (response && response.account) {
+                    account = response.account;
+                    console.log('Login successful via redirect:', account.tenantId);
+                } else {
+                    const currentAccounts = msalInstance.getAllAccounts();
+                    if (currentAccounts.length > 0) {
+                        account = selectBestAccount(currentAccounts);
+                        console.log('Existing session found:', account?.tenantId);
+                    }
+                }
+                
+                if (account) {
+                    showUser(account);
+                    
+                    // Emit custom event for other components to listen to
+                    document.dispatchEvent(new CustomEvent('azure-auth-success', {
+                        detail: {
+                            account: account,
+                            tenantId: account.tenantId,
+                            isMultiTenant: true
+                        }
+                    }));
+                } else {
+                    console.log('No authenticated session found, initiating login...');
+                    initiateLogin();
+                }
+            }).catch((error) => {
+                console.error("Azure AD MSAL error:", error);
+                
+                // Handle the /common endpoint error specifically
+                if (error.errorMessage && error.errorMessage.includes('/common endpoint') || 
+                    error.errorMessage && error.errorMessage.includes('not supported for such applications')) {
+                    
+                    console.error('❌ /common endpoint error detected - App registration mismatch!');
+                    document.getElementById('msal-loading').innerHTML = `
+                        <div style="color: #d83b01; padding: 1.5rem; text-align: center; background: #fdf2f2; border-radius: 8px; border-left: 4px solid #d83b01;">
+                            <div style="font-weight: 600; margin-bottom: 1rem;">⚠️ Configuration Error</div>
+                            <div style="margin-bottom: 1rem; font-size: 0.9rem;">
+                                The /common endpoint is not supported for your application.
+                            </div>
+                            <div style="font-size: 0.85rem; text-align: left; background: white; padding: 1rem; border-radius: 4px;">
+                                <strong>Solutions:</strong><br><br>
+                                <strong>Option 1 (Recommended):</strong> Use single-tenant mode<br>
+                                • Update TENANT_CONFIG.mode to 'single-tenant'<br>
+                                • Set your tenantId in the configuration<br><br>
+                                <strong>Option 2:</strong> Change Azure Portal settings<br>
+                                • Go to Azure Portal → App Registrations<br>
+                                • Select your app → Authentication<br>
+                                • Change "Supported account types" to multi-tenant
+                            </div>
+                        </div>
+                    `;
+                    
+                } else if (error.errorCode === 'consent_required' || error.errorCode === 'interaction_required') {
+                    console.log('Admin consent required for application');
+                    document.getElementById('msal-loading').innerHTML = `
+                        <div style="color: #d83b01; padding: 1rem; text-align: center;">
+                            ⚠️ Admin consent required<br>
+                            <small>This application requires administrator approval for your organization.</small>
+                        </div>
+                    `;
+                    
+                } else if (error.errorCode === 'invalid_tenant') {
+                    console.error('❌ Invalid tenant ID in configuration');
+                    document.getElementById('msal-loading').innerHTML = `
+                        <div style="color: #d83b01; padding: 1rem; text-align: center;">
+                            ⚠️ Invalid tenant configuration<br>
+                            <small>Please check your tenantId in TENANT_CONFIG.</small>
+                        </div>
+                    `;
+                    
+                } else {
+                    console.log('Attempting login despite error...');
+                    // For other errors, still try to login
+                    initiateLogin();
+                }
+            });
+
+            // Enhanced logout with multi-tenant cleanup
+            logoutBtn.onclick = function() {
+                // Clear tenant info
+                delete window.currentTenant;
+                
+                // Emit logout event
+                document.dispatchEvent(new CustomEvent('azure-auth-logout', {
+                    detail: { isMultiTenant: true }
+                }));
+                
+                msalInstance.logoutRedirect({
+                    postLogoutRedirectUri: window.location.origin
+                }).catch((error) => {
+                    console.error("Multi-tenant logout error:", error);
+                    // Force reload to clear all state
+                    window.location.reload();
+                });
+            };
+
+            // Utility function for components to get current tenant info
+            window.getCurrentTenant = function() {
+                return window.currentTenant || null;
+            };
+
+            // Utility function to check if user has specific roles/permissions
+            window.hasPermission = function(permission) {
+                const tenant = window.currentTenant;
+                if (!tenant) return false;
+                
+                // Add custom logic here based on your application's needs
+                // This could integrate with Azure AD roles, app roles, etc.
+                return true; // Default allow for demo purposes
+            };
+        </script>
 </html>

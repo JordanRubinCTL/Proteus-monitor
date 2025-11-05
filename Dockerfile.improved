@@ -1,0 +1,43 @@
+# Improved single-container approach using nginx:alpine as base
+FROM nginx:1.25-alpine
+
+# Install Node.js and supervisor
+RUN apk add --no-cache nodejs npm supervisor
+
+# Set working directory for the app
+WORKDIR /app
+
+# Copy package files first (for better layer caching)
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy application files
+COPY . .
+
+# Copy nginx configuration (overwrite default)
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Copy supervisor configuration
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Create necessary directories and set permissions
+RUN mkdir -p /var/log/supervisor /run/supervisor && \
+    mkdir -p /var/log/nginx /var/lib/nginx/tmp && \
+    chown -R nginx:nginx /var/log/nginx /var/lib/nginx
+
+# Create non-root user for Node.js app
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S proteus -u 1001 -G nodejs && \
+    chown -R proteus:nodejs /app
+
+# Expose HTTP port
+EXPOSE 80
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost/api/dashboard/stats || exit 1
+
+# Start supervisor
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

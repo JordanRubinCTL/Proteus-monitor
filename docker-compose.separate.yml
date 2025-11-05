@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # Node.js backend service
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.nodejs
+    container_name: proteus-backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    networks:
+      - proteus-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/dashboard/stats"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  # Nginx frontend service
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    container_name: proteus-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - proteus-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+networks:
+  proteus-network:
+    driver: bridge
+
+volumes:
+  nginx_cache:
+    driver: local
