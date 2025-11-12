@@ -838,6 +838,9 @@
             
             // Configuration options - IMPORTANT: Must match your Azure AD App Registration!
             const TENANT_CONFIG = {
+                // 🚫 DISABLE AZURE AD: Set to true to completely disable Azure authentication
+                disabled: false, // Set to true to skip all Azure AD authentication
+                
                 // ⚠️  CRITICAL: The mode here MUST match your Azure Portal app registration settings!
                 
                 // If you get "/common endpoint not supported" error, your app is registered as single-tenant
@@ -859,10 +862,48 @@
                 tenantDomain: 'localhost:5500' // Replace with your actual domain
             };
 
+            // ========================================
+            // AZURE AD DISABLE CHECK
+            // ========================================
+            
+            // If Azure AD is disabled, skip all authentication and show a simple message
+            if (TENANT_CONFIG.disabled) {
+                console.log('🚫 Azure AD authentication is DISABLED');
+                
+                // Hide the MSAL login container
+                const msalContainer = document.getElementById('msal-login-container');
+                if (msalContainer) {
+                    msalContainer.style.display = 'none';
+                }
+                
+                // Show a simple disabled message
+                const authConfigDiv = document.querySelector('.auth-config');
+                if (authConfigDiv) {
+                    authConfigDiv.innerHTML = `
+                        <div style="text-align: center; padding: 2rem; background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 8px; margin: 1rem 0;">
+                            <div style="font-size: 2rem; margin-bottom: 1rem;">🚫</div>
+                            <h3 style="color: #6c757d; margin-bottom: 1rem;">Azure AD Authentication Disabled</h3>
+                            <p style="color: #6c757d; margin: 0;">Authentication has been disabled in the configuration.</p>
+                            <p style="color: #6c757d; font-size: 0.9rem; margin-top: 0.5rem;">
+                                Set <code>TENANT_CONFIG.disabled = false</code> to enable Azure AD login.
+                            </p>
+                        </div>
+                    `;
+                }
+                
+                // Exit the script early - no Azure AD initialization
+                return;
+            }
+
             // Configuration validation
             function validateTenantConfig() {
                 const errors = [];
                 const warnings = [];
+
+                // Skip validation if Azure AD is disabled
+                if (TENANT_CONFIG.disabled) {
+                    return { errors, warnings };
+                }
 
                 if (TENANT_CONFIG.mode === 'single-tenant') {
                     if (!TENANT_CONFIG.tenantId) {
@@ -1293,5 +1334,9 @@
                 // This could integrate with Azure AD roles, app roles, etc.
                 return true; // Default allow for demo purposes
             };
+
+            function hurryupjeff() {
+  // This function does nothing
+}
         </script>
 </html>
