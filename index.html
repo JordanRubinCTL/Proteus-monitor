@@ -7,7 +7,7 @@
     <meta name="description" content="A modern web components application built with Chi UI and Vue backend">
     
 <link rel="stylesheet" href="https://lib.lumen.com/chi/6.67.0/chi-portal.css" integrity="sha256-iA3FwGgnKpn/w8P2BwmuIqfyPvbH/pubeTjtINO9gKI=" crossorigin="anonymous">
-
+<script src="https://unpkg.com/@centurylink/chi@6.67.0/dist/chi-portal.min.js"></script>
 
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
@@ -457,12 +457,31 @@
 
 <!-- JavaScript -->
 <script>
-  chi.drawer(document.getElementById('drawer-trigger-portal-pib2'));
-  chi.dropdown(document.getElementById('button-portal-site-menu2'));
-  chi.dropdown(document.getElementById('button-portal-user-menu2'));
-  chi.dropdown(document.getElementById('button-portal-eid-menu2'));
-  chi.tooltip(document.getElementById('button-portal-logout'));
-  chi.tooltip(document.getElementById('button-portal-notification2'));
+  // Check if chi is available, if not, wait for it or provide fallback
+  if (typeof chi !== 'undefined') {
+    chi.drawer(document.getElementById('drawer-trigger-portal-pib2'));
+    chi.dropdown(document.getElementById('button-portal-site-menu2'));
+    chi.dropdown(document.getElementById('button-portal-user-menu2'));
+    chi.dropdown(document.getElementById('button-portal-eid-menu2'));
+    chi.tooltip(document.getElementById('button-portal-logout'));
+    chi.tooltip(document.getElementById('button-portal-notification2'));
+  } else {
+    // Fallback: Wait for chi to load or initialize later
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(function() {
+        if (typeof chi !== 'undefined') {
+          chi.drawer(document.getElementById('drawer-trigger-portal-pib2'));
+          chi.dropdown(document.getElementById('button-portal-site-menu2'));
+          chi.dropdown(document.getElementById('button-portal-user-menu2'));
+          chi.dropdown(document.getElementById('button-portal-eid-menu2'));
+          chi.tooltip(document.getElementById('button-portal-logout'));
+          chi.tooltip(document.getElementById('button-portal-notification2'));
+        } else {
+          console.warn('Chi library not loaded - UI components may not function properly');
+        }
+      }, 100);
+    });
+  }
 </script></header>
 
 <body>
@@ -830,8 +849,8 @@
             module.exports = ProteusApp;
         }
     </script>
-</body>
-        <script>
+
+    <script>
             // ========================================
             // AZURE AD TENANT CONFIGURATION
             // ========================================
@@ -890,10 +909,8 @@
                         </div>
                     `;
                 }
-                
-                // Exit the script early - no Azure AD initialization
-                return;
-            }
+            } else {
+                // Azure AD is enabled - continue with initialization
 
             // Configuration validation
             function validateTenantConfig() {
@@ -923,7 +940,6 @@
                 switch (TENANT_CONFIG.mode) {
                     case 'single-tenant':
                         if (!TENANT_CONFIG.tenantId) {
-                         
                             throw new Error('tenantId is required for single-tenant mode');
                         }
                         return `https://login.microsoftonline.com/${TENANT_CONFIG.tenantId}`;
@@ -944,22 +960,22 @@
                 if (TENANT_CONFIG.mode === 'single-tenant') {
                     // Single tenant can request more permissions by default
                     return [
-                        ...baseScopes,
-                        'User.ReadBasic.All',
-                        'Directory.Read.All',
-                        'Group.Read.All'
+                       // ...baseScopes
+                   //     'User.ReadBasic.All'
+      //                  'Directory.Read.All',
+        //                'Group.Read.All'
                     ];
                 } else if (TENANT_CONFIG.mode === 'organizations-only') {
                     // Organizations only - moderate permissions
                     return [
-                        ...baseScopes,
-                        'User.ReadBasic.All'
+                       // ...baseScopes,
+                   //     'User.ReadBasic.All'
+      //                  'Directory.Read.All',
+        //                'Group.Read.All'
                     ];
-                } else {
-                    // Multi-tenant - minimal permissions to avoid consent issues
-                    return baseScopes;
-                }
-            }
+                } else if (TENANT_CONFIG.mode === 'organizations-only') {
+                    // Organizations only - moderate permissions
+                    return [
 
             // MSAL Configuration with dynamic authority
             const msalConfig = {
@@ -1335,8 +1351,11 @@
                 return true; // Default allow for demo purposes
             };
 
+            } // End of Azure AD enabled block
+
             function hurryupjeff() {
   // This function does nothing
 }
         </script>
+</body>
 </html>
