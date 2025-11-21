@@ -146,6 +146,12 @@ class AzureAuthService {
         const tenantName = this.getTenantDisplayName(account);
         const userDisplayName = account.name || account.username || 'Unknown User';
         const authMode = window.AzureConfig.TENANT_CONFIG.mode.replace('-', ' ').toUpperCase();
+        
+        // Update the header impersonation bar username
+        const headerUsername = document.querySelector('.chi-impersonation-bar__username');
+        if (headerUsername) {
+            headerUsername.textContent = userDisplayName;
+        }
         const modeIcon = {
             'single-tenant': '🏢',
             'multi-tenant': '🌐', 
@@ -423,6 +429,12 @@ class AzureAuthService {
         const logoutBtn = document.getElementById("msal-logout-btn");
         if (logoutBtn) {
             logoutBtn.onclick = () => this.logout();
+        }
+        
+        // Also bind the header logout button
+        const headerLogoutBtn = document.getElementById("button-portal-logout");
+        if (headerLogoutBtn) {
+            headerLogoutBtn.onclick = () => this.logout();
         }
     }
 

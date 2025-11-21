@@ -135,6 +135,7 @@ class ProteusApp {
             'forms': '📝 Forms - Proteus Chi Monitor',
             'data': '📋 Data Display - Proteus Chi Monitor',
             'modals': '🗂️ Modals - Proteus Chi Monitor',
+            'das-health': '🏥 DAS Health - Proteus Chi Monitor',
         };
         document.title = titles[page] || '🚀 Proteus Chi Monitor';
 

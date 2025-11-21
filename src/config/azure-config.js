@@ -29,7 +29,7 @@ const TENANT_CONFIG = {
     clientId: "dd9e12c5-f62c-4303-bab8-824ac13e1f09", // Replace with your real clientId from Azure Portal
     
     // Optional: Your organization domain for better UX
-    tenantDomain: 'localhost:5500' // Replace with your actual domain
+    tenantDomain: 'localhost:3000' // Replace with your actual domain
 };
 
 /**
@@ -102,7 +102,7 @@ function getMsalConfig() {
         auth: {
             clientId: TENANT_CONFIG.clientId,
             authority: getAuthority(),
-            redirectUri: 'http://localhost:5500',
+            redirectUri: 'http://localhost:3000',
             postLogoutRedirectUri: window.location.origin,
             navigateToLoginRequestUrl: false,
             // Tenant-specific configurations

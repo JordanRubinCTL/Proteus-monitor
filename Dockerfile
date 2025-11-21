@@ -1,8 +1,8 @@
 # Use Node.js official image
 FROM node:18-alpine
 
-# Install nginx and supervisor
-RUN apk add --no-cache nginx supervisor
+# Install nginx, supervisor, and openssh client
+RUN apk add --no-cache nginx supervisor openssh-client
 
 # Set working directory for the app
 WORKDIR /app
@@ -10,15 +10,15 @@ WORKDIR /app
 # Copy package files first (for better layer caching)
 COPY package*.json ./
 
-# Install dependencies
+# Install dependencies (including node-ssh)
 RUN npm ci --only=production
 
 # Copy application files
 COPY . .
 
 # Create nginx configuration
-RUN mkdir -p /etc/nginx/conf.d
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+RUN mkdir -p /etc/nginx/http.d
+COPY nginx.conf /etc/nginx/http.d/default.conf
 
 # Create supervisor configuration
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
@@ -30,6 +30,19 @@ RUN mkdir -p /var/log/nginx /var/lib/nginx/tmp /run/nginx && \
 # Create non-root user for Node.js app
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S proteus -u 1001 -G nodejs
+
+# Setup SSH directory for host service monitoring
+RUN mkdir -p /home/proteus/.ssh && \
+    chown -R proteus:nodejs /home/proteus/.ssh && \
+    chmod 700 /home/proteus/.ssh
+
+# Copy SSH keys for host access (optional - only needed if CHECK_HOST_SERVICES=true)
+# Create ssh-keys directory with: mkdir ssh-keys && ssh-keygen -t rsa -b 4096 -f ./ssh-keys/id_rsa -N ""
+# Then add ssh-keys/id_rsa.pub to host's ~/.ssh/authorized_keys
+COPY --chown=proteus:nodejs ssh-keys/id_rsa /home/proteus/.ssh/id_rsa
+COPY --chown=proteus:nodejs ssh-keys/id_rsa.pub /home/proteus/.ssh/id_rsa.pub
+RUN chmod 600 /home/proteus/.ssh/id_rsa && \
+    chmod 644 /home/proteus/.ssh/id_rsa.pub
 
 # Change ownership of the app directory
 RUN chown -R proteus:nodejs /app

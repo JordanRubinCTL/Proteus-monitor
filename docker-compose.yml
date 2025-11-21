@@ -9,6 +9,14 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=production
+      # SSH Configuration for host service monitoring
+      # Set CHECK_HOST_SERVICES=true to enable monitoring services on the Docker host
+      - CHECK_HOST_SERVICES=true
+      - SSH_HOST=host.docker.internal  # Use host IP (e.g., 192.168.1.100) in production
+      - SSH_USER=root
+      - SSH_KEY_PATH=/home/proteus/.ssh/id_rsa
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Allows container to reach Docker host
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/api/dashboard/stats"]
       interval: 30s
